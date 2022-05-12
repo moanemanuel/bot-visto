@@ -1,10 +1,12 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const socketIO = require('socket.io');
 const qrcode = require('qrcode');
 const http = require('http');
 const fileUpload = require('express-fileupload');
+const axios = require('axios');
+const mime = require('mime-types');
 const port = process.env.PORT || 8000;
 const app = express();
 const server = http.createServer(app);
@@ -98,22 +100,100 @@ app.post('/send-message', [
     });
   }
 
-  const number = req.body.number + '@c.us';
+  const number = req.body.number;
+  const numberDDD = number.substr(0, 2);
+  const numberUser = number.substr(-8, 8);
   const message = req.body.message;
 
-
-  client.sendMessage(number, message).then(response => {
+  if (numberDDD <= 30) {
+    const numberZDG = "55" + numberDDD + "9" + numberUser + "@c.us";
+    client.sendMessage(numberZDG, message).then(response => {
     res.status(200).json({
       status: true,
+      message: 'BOT-ZDG Mensagem enviada',
       response: response
     });
-  }).catch(err => {
+    }).catch(err => {
     res.status(500).json({
       status: false,
-      response: err
+      message: 'BOT-ZDG Mensagem não enviada',
+      response: err.text
     });
-  });
+    });
+  }
+  else if (numberDDD > 30) {
+    const numberZDG = "55" + numberDDD + numberUser + "@c.us";
+    client.sendMessage(numberZDG, message).then(response => {
+    res.status(200).json({
+      status: true,
+      message: 'BOT-ZDG Mensagem enviada',
+      response: response
+    });
+    }).catch(err => {
+    res.status(500).json({
+      status: false,
+      message: 'BOT-ZDG Mensagem não enviada',
+      response: err.text
+    });
+    });
+  }
 });
+
+
+// Send media
+app.post('/send-media', async (req, res) => {
+  const number = req.body.number;
+  const numberDDD = number.substr(0, 2);
+  const numberUser = number.substr(-8, 8);
+  const caption = req.body.caption;
+  const fileUrl = req.body.file;
+
+  let mimetype;
+  const attachment = await axios.get(fileUrl, {
+    responseType: 'arraybuffer'
+  }).then(response => {
+    mimetype = response.headers['content-type'];
+    return response.data.toString('base64');
+  });
+
+  const media = new MessageMedia(mimetype, attachment, 'Media');
+
+  if (numberDDD <= 30) {
+    const numberZDG = "55" + numberDDD + "9" + numberUser + "@c.us";
+    client.sendMessage(numberZDG, media, {caption: caption}).then(response => {
+    res.status(200).json({
+      status: true,
+      message: 'BOT-ZDG Imagem enviada',
+      response: response
+    });
+    }).catch(err => {
+    res.status(500).json({
+      status: false,
+      message: 'BOT-ZDG Imagem não enviada',
+      response: err.text
+    });
+    });
+  }
+
+  else if (numberDDD > 30) {
+    const numberZDG = "55" + numberDDD + numberUser + "@c.us";
+    client.sendMessage(numberZDG, media, {caption: caption}).then(response => {
+    res.status(200).json({
+      status: true,
+      message: 'BOT-ZDG Imagem enviada',
+      response: response
+    });
+    }).catch(err => {
+    res.status(500).json({
+      status: false,
+      message: 'BOT-ZDG Imagem não enviada',
+      response: err.text
+    });
+    });
+  }
+});
+
+
 
 client.on('message', async msg => {
   //const user = await client.getContactById('553588754197')
